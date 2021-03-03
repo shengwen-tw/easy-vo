@@ -24,6 +24,7 @@ set(
 
 set(
     TINY_VO_SRC
+    ./src/feature_detector.cpp
     ./src/main.cpp
 )
 
