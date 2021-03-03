@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>tiny_vo</name>
+  <version>0.0.1</version>
+  <description>a tiny experimental visual odometry</description>
+
+  <author email="shengwen1997.tw@gmail.com">Shengwen, Cheng</author>
+  <maintainer email="shengwen1997.tw@gmail.com">Shengwen, Cheng</maintainer>
+
+  <license>GPLv3</license>
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>tf2_ros</depend>
+
+  <test_depend>roslaunch</test_depend>
+  <test_depend>roslint</test_depend>
+
+  <export>
+  </export>
+</package>
