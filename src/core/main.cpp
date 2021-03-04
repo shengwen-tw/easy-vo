@@ -3,6 +3,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "feature_detector.hpp"
+#include "visual_odemetry.hpp"
 
 using namespace std;
 using namespace cv;
@@ -17,20 +18,18 @@ int main()
 		return -1;
 	}
 
-	Mat img_last, img_now;
+	Mat raw_img;
 
 	/* initialization */
 	while(!cap.read(camera));
-	img_last = cv::Mat(camera);
+	raw_img = cv::Mat(camera);
 
 	VOFeatureDetector feature_detector;
+	VisualOdemetry visual_odemetry(raw_img);
 
 	while(cap.read(camera)) {
-		img_now = cv::Mat(camera);
-
-		feature_detector.match(img_last, img_now);
-
-		img_last = img_now;
+		raw_img = cv::Mat(camera);
+		visual_odemetry.estimate(raw_img);
 	}
 
 	return 0;
