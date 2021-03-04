@@ -17,15 +17,34 @@ generate_messages(DEPENDENCIES std_msgs)
 
 find_package(OpenCV 3.4 REQUIRED)
 
+####################### intrinsic calibration program ############################
+
+set(
+    CALIBRATION_INC
+    ./src/calibration
+)
+
+set(
+    CALIBRATION_SRC
+    ./src/calibration/main.cpp
+)
+
+include_directories(${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${CALIBRATION_INC})
+add_executable(calibration ${CALIBRATION_SRC})
+target_link_libraries (calibration ${OpenCV_LIBRARIES} ${catkin_LIBRARIES} yaml-cpp)
+add_dependencies(calibration ${PROJECT_NAME}_generate_messages_cpp)
+
+########################## visual odemetry program ###############################
+
 set(
     TINY_VO_INC
-    ./src
+    ./core/src
 )
 
 set(
     TINY_VO_SRC
-    ./src/feature_detector.cpp
-    ./src/main.cpp
+    ./src/core/feature_detector.cpp
+    ./src/core/main.cpp
 )
 
 include_directories(${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${TINY_VO_INC})
