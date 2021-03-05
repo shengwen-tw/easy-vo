@@ -23,15 +23,15 @@ VisualOdemetry::VisualOdemetry(Mat& img_initial_frame)
 	                    0,  0,  1);
 
 	/* exract features from initial frame */
-	feature_detector.extract(img_initial_frame, ref_frame_features);
+	feature_detector.extract(img_initial_frame, last_features);
 
 	/* set intial frame's relative position to be zero */
 	for(int i = 0; i < 3; i++) {
-		reference_keypoints_3d.push_back(cv::Point3f(0, 0, 0));
+		last_features.points_3d.push_back(cv::Point3f(0, 0, 0));
 	}
 
 	/* debug */
-	img_initial_frame.copyTo(init_frame_img);
+	img_initial_frame.copyTo(last_frame_img);
 }
 
 void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
@@ -56,25 +56,28 @@ void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
 	//printf("pnp inliers count = %d\n", inlier_cnt);
 
 	T << rvec.at<float>(0, 0), rvec.at<float>(0, 1), rvec.at<float>(0, 2), tvec.at<float>(0, 0),
-	rvec.at<float>(1, 0), rvec.at<float>(1, 1), rvec.at<float>(1, 2), tvec.at<float>(1, 0),
-	rvec.at<float>(2, 0), rvec.at<float>(2, 1), rvec.at<float>(2, 2), tvec.at<float>(2, 0),
-	0,                    0,                    0,                    1;
+             rvec.at<float>(1, 0), rvec.at<float>(1, 1), rvec.at<float>(1, 2), tvec.at<float>(1, 0),
+             rvec.at<float>(2, 0), rvec.at<float>(2, 1), rvec.at<float>(2, 2), tvec.at<float>(2, 0),
+                                0,                    0,                    0,                    1;
 }
 
-void VisualOdemetry::estimate(cv::Mat new_img)
+void VisualOdemetry::estimate(cv::Mat& new_img)
 {
-	Eigen::Matrix4f T; //transformation matrix
+	Eigen::Matrix4f T_last_to_now; //transformation matrix
+
+	feature_detector.extract(last_frame_img, last_features);
 
 	VOFeatures new_features;
 	feature_detector.extract(new_img, new_features);
 
-	feature_detector.match(feature_matches, ref_frame_features, new_features);
+	feature_detector.match(feature_matches, last_features, new_features);
 
-	//pose_estimation_pnp(T, ref_frame_features, reference_keypoints_3d, new_features, feature_matches);
+	//pose_estimation_pnp(T_last_to_now, last_features, last_features.points_3d, new_features, feature_matches);
 
-	/* debug visualization */
-	feature_detector.plot_matched_features(init_frame_img, new_img, ref_frame_features,
-	                                       new_features, feature_matches);
+	feature_detector.plot_matched_features(last_frame_img, new_img, last_features, new_features, feature_matches);
 
-	printf("estimated position = %lf, %lf, %lf\n", T(0, 3), T(1, 3), T(2, 3));
+	new_img.copyTo(last_frame_img);
+	last_features = new_features;
+
+	//printf("estimated position = %lf, %lf, %lf\n", T(0, 3), T(1, 3), T(2, 3));
 }

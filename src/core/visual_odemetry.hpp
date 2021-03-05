@@ -15,17 +15,19 @@ public:
 	void pose_estimation_pnp(Eigen::Matrix4f& T, VOFeatures& ref_frame_features,
                                  vector<cv::Point3f>& reference_points_3d,
                                  VOFeatures& curr_frame_features, vector<DMatch>& feature_matches);
-	void estimate(cv::Mat new_img);
+	void estimate(cv::Mat& new_img);
 
 private:
 	VOFeatureDetector feature_detector;
 
-	VOFeatures ref_frame_features;
-	vector<cv::Point3f> reference_keypoints_3d;
+	Mat last_frame_img;
+	VOFeatures last_features;
 
 	cv::Mat intrinsic_matrix;
 
 	vector<DMatch> feature_matches;
+
+	Eigen::Matrix4f T;
 
 	/* debug visualization's data */
 	Mat init_frame_img;

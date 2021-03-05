@@ -14,6 +14,8 @@ VOFeatureDetector::VOFeatureDetector()
 
 void VOFeatureDetector::extract(Mat& img, VOFeatures& features)
 {
+	features.keypoints.clear();
+
 	/* extract image feature keypoints and generate descriptors */
 	orb->detect(img, features.keypoints);
 	orb->compute(img, features.keypoints, features.descriptors);
@@ -22,14 +24,17 @@ void VOFeatureDetector::extract(Mat& img, VOFeatures& features)
 void VOFeatureDetector::match(vector<DMatch>& feature_matches,
                               VOFeatures& features1, VOFeatures& features2)
 {
+	feature_matches.clear();
+
 	/* match orb features */
+	vector<DMatch> raw_feature_matches;
 	BFMatcher matcher(NORM_HAMMING);
-	matcher.match(features1.descriptors, features2.descriptors, feature_matches);
+	matcher.match(features1.descriptors, features2.descriptors, raw_feature_matches);
 
 	/* record min/max feature distance */
 	double min_dist = 10000, max_dist = 0;
 	for(int i = 0; i < features1.descriptors.rows; i++) {
-		double curr_dist = feature_matches[i].distance;
+		double curr_dist = raw_feature_matches[i].distance;
 		if(curr_dist < min_dist) {
 			min_dist = curr_dist;
 		}
@@ -41,10 +46,9 @@ void VOFeatureDetector::match(vector<DMatch>& feature_matches,
 	//printf("feature dist: min:%lf, max:%lf\n", min_dist, max_dist);
 
 	/* matched feature filtering */
-	std::vector<DMatch> good_feature_matches;
 	for(int i = 0; i < features1.descriptors.rows; i++) {
-		if(feature_matches[i].distance <= max(2 * min_dist, 30.0)) {
-			good_feature_matches.push_back(feature_matches[i]);
+		if(raw_feature_matches[i].distance <= max(2 * min_dist, 30.0)) {
+			feature_matches.push_back(raw_feature_matches[i]);
 		}
 	}
 }

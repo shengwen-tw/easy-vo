@@ -11,6 +11,7 @@ using namespace cv;
 typedef struct {
 	std::vector<KeyPoint> keypoints;
 	Mat descriptors;
+	vector<cv::Point3f> points_3d;
 } VOFeatures;
 
 class VOFeatureDetector {
