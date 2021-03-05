@@ -19,14 +19,14 @@ VisualOdemetry::VisualOdemetry(Mat& img_initial_frame)
 	cy = 240.03464;
 
 	intrinsic_matrix = (cv::Mat_<double>(3,3) << fx,  0, cx,
-	                    0, fy, cy,
-	                    0,  0,  1);
+	                                              0, fy, cy,
+	                                              0,  0,  1);
 
 	/* exract features from initial frame */
 	feature_detector.extract(img_initial_frame, last_features);
 
 	/* set intial frame's relative position to be zero */
-	for(int i = 0; i < 3; i++) {
+	for(int i = 0; i < last_features.keypoints.size(); i++) {
 		last_features.points_3d.push_back(cv::Point3f(0, 0, 0));
 	}
 
@@ -36,7 +36,6 @@ VisualOdemetry::VisualOdemetry(Mat& img_initial_frame)
 
 void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
                 VOFeatures& ref_frame_features,
-                vector<cv::Point3f>& reference_points_3d,
                 VOFeatures& curr_frame_features,
                 vector<DMatch>& feature_matches)
 {
@@ -44,7 +43,7 @@ void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
 	vector<Point2f> img_points_2d;
 
 	for(cv::DMatch m:feature_matches) {
-		obj_points_3d.push_back(reference_points_3d[m.queryIdx]);
+		obj_points_3d.push_back(ref_frame_features.points_3d[m.queryIdx]);
 		img_points_2d.push_back(curr_frame_features.keypoints[m.trainIdx].pt);
 	}
 
@@ -52,8 +51,8 @@ void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
 	solvePnPRansac(obj_points_3d, img_points_2d, intrinsic_matrix, Mat(), rvec, tvec,
 	               false, 100, 4.0, 0.99, inliers);
 
-	//int inlier_cnt = inliers.rows;
-	//printf("pnp inliers count = %d\n", inlier_cnt);
+	int inlier_cnt = inliers.rows;
+	printf("pnp inliers count = %d\n", inlier_cnt);
 
 	T << rvec.at<float>(0, 0), rvec.at<float>(0, 1), rvec.at<float>(0, 2), tvec.at<float>(0, 0),
              rvec.at<float>(1, 0), rvec.at<float>(1, 1), rvec.at<float>(1, 2), tvec.at<float>(1, 0),
@@ -63,21 +62,19 @@ void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
 
 void VisualOdemetry::estimate(cv::Mat& new_img)
 {
-	Eigen::Matrix4f T_last_to_now; //transformation matrix
-
-	feature_detector.extract(last_frame_img, last_features);
+	Eigen::Matrix4f T_last_to_now;
 
 	VOFeatures new_features;
 	feature_detector.extract(new_img, new_features);
 
 	feature_detector.match(feature_matches, last_features, new_features);
 
-	//pose_estimation_pnp(T_last_to_now, last_features, last_features.points_3d, new_features, feature_matches);
+	pose_estimation_pnp(T_last_to_now, last_features, new_features, feature_matches);
 
 	feature_detector.plot_matched_features(last_frame_img, new_img, last_features, new_features, feature_matches);
 
-	new_img.copyTo(last_frame_img);
-	last_features = new_features;
+	//new_img.copyTo(last_frame_img);
+	//last_features = new_features;
 
 	//printf("estimated position = %lf, %lf, %lf\n", T(0, 3), T(1, 3), T(2, 3));
 }
