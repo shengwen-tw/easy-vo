@@ -11,7 +11,11 @@ using namespace cv;
 
 class VisualOdemetry {
 public:
-	VisualOdemetry(Mat& img_initial_frame);
+	VisualOdemetry() {}
+	~VisualOdemetry() {}
+
+	void depth_calibration(cv::VideoCapture& camera);
+	void initialize(Mat& img_initial_frame);
 	void pose_estimation_pnp(Eigen::Matrix4f& T, VOFeatures& ref_frame_features,
                                  VOFeatures& curr_frame_features, vector<DMatch>& feature_matches);
 	void estimate(cv::Mat& new_img);

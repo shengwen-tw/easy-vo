@@ -9,7 +9,9 @@
 using namespace std;
 using namespace cv;
 
-VisualOdemetry::VisualOdemetry(Mat& img_initial_frame)
+bool calib_exit_signal = false;
+
+void VisualOdemetry::initialize(Mat& img_initial_frame)
 {
 	/* intrinsic matrix */
 	double fx, fy, cx, cy;
@@ -32,6 +34,37 @@ VisualOdemetry::VisualOdemetry(Mat& img_initial_frame)
 
 	/* debug */
 	img_initial_frame.copyTo(last_frame_img);
+}
+
+void VisualOdemetry::depth_calibration(cv::VideoCapture& camera)
+{
+	cv::Mat raw_img;
+
+	auto imshow_callback = [](int event, int x, int y, int flags, void* param) {
+	        if(event == CV_EVENT_LBUTTONDOWN) {
+			calib_exit_signal = true;
+	        }
+	};
+	namedWindow("scale calibration");
+	setMouseCallback("scale calibration", imshow_callback, NULL);
+
+	printf("click the window to collect the calibration frame 1\n");
+	calib_exit_signal = false;
+	while(!calib_exit_signal) {
+		while(!camera.read(raw_img));
+		imshow("scale calibration", raw_img);
+		cv::waitKey(30);
+	}
+
+	printf("click the window to collect the calibration frame 2\n");
+	calib_exit_signal = false;
+	while(!calib_exit_signal) {
+		while(!camera.read(raw_img));
+		imshow("scale calibration", raw_img);
+		cv::waitKey(30);
+	}
+
+	/* calculate scaling factor via least square method */
 }
 
 void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,

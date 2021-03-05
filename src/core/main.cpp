@@ -25,12 +25,14 @@ int main()
 
 	Mat raw_img;
 
+	VisualOdemetry visual_odemetry;
+
+	visual_odemetry.depth_calibration(cap);
+
 	/* initialization */
 	while(!cap.read(camera));
 	raw_img = cv::Mat(camera);
-
-	VOFeatureDetector feature_detector;
-	VisualOdemetry visual_odemetry(raw_img);
+	visual_odemetry.initialize(raw_img);
 
 	while(cap.read(camera)) {
 		raw_img = cv::Mat(camera);
