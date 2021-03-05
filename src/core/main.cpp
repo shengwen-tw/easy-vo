@@ -13,12 +13,11 @@ using namespace cv;
 
 int main()
 {
-	cv::Mat camera;
-	cv::VideoCapture cap(0, cv::CAP_V4L);
-        cap.set(CV_CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH);
-        cap.set(CV_CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT);
+	cv::VideoCapture camera(0, cv::CAP_V4L);
+        camera.set(CV_CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH);
+        camera.set(CV_CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT);
 
-	if(cap.isOpened() != true) {
+	if(camera.isOpened() != true) {
 		cout << "failed to open the camera.\n";
 		return -1;
 	}
@@ -27,15 +26,14 @@ int main()
 
 	VisualOdemetry visual_odemetry;
 
-	visual_odemetry.depth_calibration(cap);
+	visual_odemetry.depth_calibration(camera);
 
 	/* initialization */
-	while(!cap.read(camera));
-	raw_img = cv::Mat(camera);
+	while(!camera.read(raw_img));
 	visual_odemetry.initialize(raw_img);
 
-	while(cap.read(camera)) {
-		raw_img = cv::Mat(camera);
+	while(1) {
+		while(!camera.read(raw_img));
 		visual_odemetry.estimate(raw_img);
 	}
 
