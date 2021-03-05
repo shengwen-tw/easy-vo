@@ -5,6 +5,9 @@
 #include "feature_detector.hpp"
 #include "visual_odemetry.hpp"
 
+#define IMAGE_WIDTH  640
+#define IMAGE_HEIGHT 480
+
 using namespace std;
 using namespace cv;
 
@@ -12,6 +15,8 @@ int main()
 {
 	cv::Mat camera;
 	cv::VideoCapture cap(0, cv::CAP_V4L);
+        cap.set(CV_CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH);
+        cap.set(CV_CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT);
 
 	if(cap.isOpened() != true) {
 		cout << "failed to open the camera.\n";
