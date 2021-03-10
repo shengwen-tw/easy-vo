@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
@@ -8,6 +9,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace Eigen;
 
 bool calib_exit_signal = false;
 
@@ -34,6 +36,56 @@ void VisualOdemetry::initialize(Mat& img_initial_frame)
 
 	/* debug */
 	img_initial_frame.copyTo(last_frame_img);
+}
+
+void VisualOdemetry::estimate_non_scaled_essential_matrix()
+{
+#if 1
+	/* test code */
+	Mat test_img1 = imread("/home/shengwen/test_data/1.png");
+	Mat test_img2 = imread("/home/shengwen/test_data/2.png");
+
+	imshow("img1", test_img1);
+	imshow("img2", test_img2);
+
+	VOFeatures last_features, new_features;
+	feature_detector.extract(test_img1, last_features);
+	feature_detector.extract(test_img2, new_features);
+
+		vector<DMatch> feature_matches;
+	feature_detector.match(feature_matches, last_features, new_features);
+
+	feature_detector.plot_matched_features(test_img1, test_img2, last_features, new_features, feature_matches);
+
+	imshow("img1", test_img1);
+	imshow("img2", test_img2);
+
+	while(1) {cv::waitKey(30);}
+#endif
+	float u1[8], v1[8], u2[8], v2[8];
+
+	/* eight point method */
+	Eigen::MatrixXf A(8, 9);
+	A << u1[0]*u1[0], u1[0]*v2[0], u1[0], v1[0]*u2[0], v1[0]*v2[0], v1[0], u2[0], v2, 1,
+             u1[1]*u1[1], u1[1]*v2[1], u1[1], v1[1]*u2[1], v1[1]*v2[1], v1[1], u2[1], v2, 1,
+             u1[2]*u1[2], u1[2]*v2[2], u1[2], v1[2]*u2[2], v1[2]*v2[2], v1[2], u2[2], v2, 1,
+             u1[3]*u1[3], u1[3]*v2[3], u1[3], v1[3]*u2[3], v1[3]*v2[3], v1[3], u2[3], v2, 1,
+             u1[4]*u1[4], u1[4]*v2[4], u1[4], v1[4]*u2[4], v1[4]*v2[4], v1[4], u2[4], v2, 1,
+             u1[5]*u1[5], u1[5]*v2[5], u1[5], v1[5]*u2[5], v1[5]*v2[5], v1[5], u2[5], v2, 1,
+             u1[6]*u1[6], u1[6]*v2[6], u1[6], v1[6]*u2[6], v1[6]*v2[6], v1[6], u2[6], v2, 1,
+             u1[7]*u1[7], u1[7]*v2[7], u1[7], v1[7]*u2[7], v1[7]*v2[7], v1[7], u2[7], v2, 1;
+
+	Eigen::MatrixXf AtA(9, 9);
+	AtA = A * A.transpose();
+
+	Eigen::JacobiSVD<MatrixXf> svd(AtA, ComputeThinU | ComputeThinV);
+
+	cout << "SVD of AtA:";
+	cout << "singular values" << endl << svd.singularValues() << endl;
+	cout << "U:" << endl << svd.matrixU() << endl;
+	cout << "V:" << endl << svd.matrixV() << endl;
+
+	while(1) {cv::waitKey(30);}
 }
 
 void VisualOdemetry::depth_calibration(cv::VideoCapture& camera)

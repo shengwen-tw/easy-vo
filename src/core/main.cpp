@@ -25,7 +25,7 @@ int main()
 	Mat raw_img;
 
 	VisualOdemetry visual_odemetry;
-
+	visual_odemetry.estimate_non_scaled_essential_matrix();
 	visual_odemetry.depth_calibration(camera);
 
 	/* initialization */
