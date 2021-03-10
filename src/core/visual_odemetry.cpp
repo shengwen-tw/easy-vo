@@ -52,38 +52,62 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	feature_detector.extract(test_img1, last_features);
 	feature_detector.extract(test_img2, new_features);
 
-		vector<DMatch> feature_matches;
+	vector<DMatch> feature_matches;
 	feature_detector.match(feature_matches, last_features, new_features);
 
 	feature_detector.plot_matched_features(test_img1, test_img2, last_features, new_features, feature_matches);
 
+	Eigen::MatrixXf A(8, 9);
+
+	int r = 0;
+	for(cv::DMatch m:feature_matches) {
+		double u1, v1, u2, v2;
+		u1 = last_features.keypoints[m.trainIdx].pt.x;
+		v1 = last_features.keypoints[m.trainIdx].pt.y;
+		u2 = new_features.keypoints[m.trainIdx].pt.x;
+		v2 = new_features.keypoints[m.trainIdx].pt.y;
+		printf("(%lf, %lf) -> (%lf, %lf)\n", u1, v1, u2, v2);
+
+		if(r < 8) {
+			A(r, 0) = u1*u1;
+			A(r, 1) = u1*v2;
+			A(r, 2) = u1;
+			A(r, 3) = v1*u2;
+			A(r, 4) = v1*v2;
+			A(r, 5) = v1;
+			A(r, 6) = u2;
+			A(r, 7) = v2;
+			A(r, 8) = 1;
+			r++;
+		}
+	}
+
+	cout << A << endl;
+
 	imshow("img1", test_img1);
 	imshow("img2", test_img2);
 
-	while(1) {cv::waitKey(30);}
 #endif
-	float u1[8], v1[8], u2[8], v2[8];
+	Eigen::JacobiSVD<MatrixXf> svd(A.transpose() * A, ComputeThinU | ComputeThinV);
 
-	/* eight point method */
-	Eigen::MatrixXf A(8, 9);
-	A << u1[0]*u1[0], u1[0]*v2[0], u1[0], v1[0]*u2[0], v1[0]*v2[0], v1[0], u2[0], v2, 1,
-             u1[1]*u1[1], u1[1]*v2[1], u1[1], v1[1]*u2[1], v1[1]*v2[1], v1[1], u2[1], v2, 1,
-             u1[2]*u1[2], u1[2]*v2[2], u1[2], v1[2]*u2[2], v1[2]*v2[2], v1[2], u2[2], v2, 1,
-             u1[3]*u1[3], u1[3]*v2[3], u1[3], v1[3]*u2[3], v1[3]*v2[3], v1[3], u2[3], v2, 1,
-             u1[4]*u1[4], u1[4]*v2[4], u1[4], v1[4]*u2[4], v1[4]*v2[4], v1[4], u2[4], v2, 1,
-             u1[5]*u1[5], u1[5]*v2[5], u1[5], v1[5]*u2[5], v1[5]*v2[5], v1[5], u2[5], v2, 1,
-             u1[6]*u1[6], u1[6]*v2[6], u1[6], v1[6]*u2[6], v1[6]*v2[6], v1[6], u2[6], v2, 1,
-             u1[7]*u1[7], u1[7]*v2[7], u1[7], v1[7]*u2[7], v1[7]*v2[7], v1[7], u2[7], v2, 1;
-
-	Eigen::MatrixXf AtA(9, 9);
-	AtA = A * A.transpose();
-
-	Eigen::JacobiSVD<MatrixXf> svd(AtA, ComputeThinU | ComputeThinV);
-
-	cout << "SVD of AtA:";
+	cout << "SVD of AtA" << endl;
 	cout << "singular values" << endl << svd.singularValues() << endl;
 	cout << "U:" << endl << svd.matrixU() << endl;
 	cout << "V:" << endl << svd.matrixV() << endl;
+
+	/* find smallest singular value */
+	double min = svd.singularValues()[0];
+	int min_index = 0;
+	for(int i = 1; i < 9; i++) {
+		if(svd.singularValues()[i] < min) {
+			min = svd.singularValues()[i];
+			min_index = i;
+		}
+	}
+	printf("index %d element has the smallest singular value\n", min_index);
+
+	/* restore R and t from E */
+	
 
 	while(1) {cv::waitKey(30);}
 }
