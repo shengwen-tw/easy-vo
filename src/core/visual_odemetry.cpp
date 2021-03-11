@@ -68,7 +68,7 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 		printf("(%lf, %lf) -> (%lf, %lf)\n", u1, v1, u2, v2);
 
 		if(r < 8) {
-			A(r, 0) = u1*u1;
+			A(r, 0) = u1*u2;
 			A(r, 1) = u1*v2;
 			A(r, 2) = u1;
 			A(r, 3) = v1*u2;
@@ -94,10 +94,11 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	cout << "V:" << endl << AtA_svd.matrixV() << endl;
 
 	/* extract E from smallest singular value corresponded singular vector  */
-	Eigen::Matrix3f E; 
-        E << AtA_svd.matrixV()(8, 0), AtA_svd.matrixV()(8, 1), AtA_svd.matrixV()(8, 2),
-             AtA_svd.matrixV()(8, 3), AtA_svd.matrixV()(8, 4), AtA_svd.matrixV()(8, 5),
-             AtA_svd.matrixV()(8, 6), AtA_svd.matrixV()(8, 7), AtA_svd.matrixV()(8, 8);
+	Eigen::Matrix3f E;
+	auto V_of_AtA = AtA_svd.matrixV();
+        E << V_of_AtA(8, 0), V_of_AtA(8, 1), V_of_AtA(8, 2),
+             V_of_AtA(8, 3), V_of_AtA(8, 4), V_of_AtA(8, 5),
+             V_of_AtA(8, 6), V_of_AtA(8, 7), V_of_AtA(8, 8);
 	cout << "E:\n" << E << endl;
 
 	/* factoring R and t from E using SVD again, 4 combination are possible */
@@ -125,9 +126,9 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	cout << "R2:\n" << R2 << endl;
 
 	Matrix3f sigma;
-	sigma << E_svd.singularValues()[0],                        0, 0,
-                                        0, E_svd.singularValues()[1], 0,
-                                        0,                         0, 0;
+	sigma << 1, 0, 0,
+                 0, 1, 0,
+                 0, 0, 0;
 	cout << "sigma:\n" << sigma << endl;
 
 	Matrix3f t1_skew_mat, t2_skew_mat;
