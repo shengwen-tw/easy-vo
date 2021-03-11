@@ -39,11 +39,13 @@ add_dependencies(calibration ${PROJECT_NAME}_generate_messages_cpp)
 
 set(
     TINY_VO_INC
-    ./core/src
+    ./src/core
+    ./src/common
 )
 
 set(
     TINY_VO_SRC
+    ./src/common/se3_math.cpp
     ./src/core/feature_detector.cpp
     ./src/core/visual_odemetry.cpp
     ./src/core/main.cpp

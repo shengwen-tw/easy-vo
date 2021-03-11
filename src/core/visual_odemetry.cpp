@@ -6,6 +6,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "visual_odemetry.hpp"
+#include "se3_math.hpp"
 
 using namespace std;
 using namespace cv;
@@ -127,12 +128,22 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	sigma << E_svd.singularValues()[0],                        0, 0,
                                         0, E_svd.singularValues()[1], 0,
                                         0,                         0, 0;
+	cout << "sigma:\n" << sigma << endl;
 
 	Matrix3f t1_skew_mat, t2_skew_mat;
-	t1_skew_mat = U * sigma * Ut;
-	t2_skew_mat = U * sigma * Ut;
-	cout << "t1_skew_mat:\n" << t1_skew_mat << endl;
-	cout << "t2_skew_mat:\n" << t2_skew_mat << endl;
+	t1_skew_mat = U * R_pos_90 * sigma * Ut;
+	t2_skew_mat = U * R_neg_90 * sigma * Ut;
+
+	Vector3f t1, t2;
+	vee_map_3x3(t1_skew_mat, t1);
+	vee_map_3x3(t2_skew_mat, t2);
+
+	cout << "t1:\n" << t1 << endl;
+	cout << "t2:\n" << t2 << endl;
+
+	double r1, p1, y1, r2, p2, y2;
+	printf("(%lf, %lf, %lf)\n", r1, p1, y1);
+	printf("(%lf, %lf, %lf)\n", r2, p2, y2);
 
 	while(1) {cv::waitKey(30);}
 }
