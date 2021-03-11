@@ -40,8 +40,6 @@ void VisualOdemetry::initialize(Mat& img_initial_frame)
 
 void VisualOdemetry::estimate_non_scaled_essential_matrix()
 {
-#if 1
-	/* test code */
 	Mat test_img1 = imread("/home/shengwen/test_data/1.png");
 	Mat test_img2 = imread("/home/shengwen/test_data/2.png");
 
@@ -81,33 +79,60 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 			r++;
 		}
 	}
-
 	cout << A << endl;
 
 	imshow("img1", test_img1);
 	imshow("img2", test_img2);
 
-#endif
-	Eigen::JacobiSVD<MatrixXf> svd(A.transpose() * A, ComputeThinU | ComputeThinV);
+	/* solve E as optimization problem using SVD */
+	Eigen::JacobiSVD<MatrixXf> AtA_svd(A.transpose() * A, ComputeThinU | ComputeThinV);
 
 	cout << "SVD of AtA" << endl;
-	cout << "singular values" << endl << svd.singularValues() << endl;
-	cout << "U:" << endl << svd.matrixU() << endl;
-	cout << "V:" << endl << svd.matrixV() << endl;
+	cout << "singular values" << endl << AtA_svd.singularValues() << endl;
+	cout << "U:" << endl << AtA_svd.matrixU() << endl;
+	cout << "V:" << endl << AtA_svd.matrixV() << endl;
 
-	/* find smallest singular value */
-	double min = svd.singularValues()[0];
-	int min_index = 0;
-	for(int i = 1; i < 9; i++) {
-		if(svd.singularValues()[i] < min) {
-			min = svd.singularValues()[i];
-			min_index = i;
-		}
-	}
-	printf("index %d element has the smallest singular value\n", min_index);
+	/* extract E from smallest singular value corresponded singular vector  */
+	Eigen::Matrix3f E; 
+        E << AtA_svd.matrixV()(8, 0), AtA_svd.matrixV()(8, 1), AtA_svd.matrixV()(8, 2),
+             AtA_svd.matrixV()(8, 3), AtA_svd.matrixV()(8, 4), AtA_svd.matrixV()(8, 5),
+             AtA_svd.matrixV()(8, 6), AtA_svd.matrixV()(8, 7), AtA_svd.matrixV()(8, 8);
+	cout << "E:\n" << E << endl;
 
-	/* restore R and t from E */
-	
+	/* factoring R and t from E using SVD again, 4 combination are possible */
+	Eigen::JacobiSVD<Matrix3f> E_svd(E, ComputeFullU | ComputeFullV);
+	auto U = E_svd.matrixU();
+	auto Ut = U.transpose();
+	auto V = E_svd.matrixV();
+	auto Vt = V.transpose();
+	cout << "U:\n" << U << endl;
+	cout << "V:\n" << V << endl;
+
+	/* choose the R and t which give the positive depth */
+	Matrix3f R_pos_90, R_neg_90;
+	R_pos_90 << 0, -1, 0,
+                    1,  0, 0,
+                    0,  0, 1;
+	R_neg_90 <<  0,  1, 0,
+                    -1,  0, 0,
+                     0,  0, 1;
+
+	Matrix3f R1, R2;
+	R1 = U * R_pos_90.transpose() * Vt;
+	R2 = U * R_neg_90.transpose() * Vt;
+	cout << "R1:\n" << R1 << endl;
+	cout << "R2:\n" << R2 << endl;
+
+	Matrix3f sigma;
+	sigma << E_svd.singularValues()[0],                        0, 0,
+                                        0, E_svd.singularValues()[1], 0,
+                                        0,                         0, 0;
+
+	Matrix3f t1_skew_mat, t2_skew_mat;
+	t1_skew_mat = U * sigma * Ut;
+	t2_skew_mat = U * sigma * Ut;
+	cout << "t1_skew_mat:\n" << t1_skew_mat << endl;
+	cout << "t2_skew_mat:\n" << t2_skew_mat << endl;
 
 	while(1) {cv::waitKey(30);}
 }
