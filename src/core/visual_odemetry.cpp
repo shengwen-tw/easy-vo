@@ -86,7 +86,7 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	imshow("img2", test_img2);
 
 	/* solve E as optimization problem using SVD */
-	Eigen::JacobiSVD<MatrixXf> AtA_svd(A.transpose() * A, ComputeThinU | ComputeThinV);
+	Eigen::JacobiSVD<MatrixXf> AtA_svd(A.transpose() * A, ComputeFullU | ComputeFullV);
 
 	cout << "SVD of AtA" << endl;
 	cout << "singular values" << endl << AtA_svd.singularValues() << endl;
@@ -141,9 +141,10 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	cout << "t1:\n" << t1 << endl;
 	cout << "t2:\n" << t2 << endl;
 
-	double r1, p1, y1, r2, p2, y2;
-	printf("(%lf, %lf, %lf)\n", r1, p1, y1);
-	printf("(%lf, %lf, %lf)\n", r2, p2, y2);
+	auto rpy1 = R1.eulerAngles(0, 1, 2);
+	auto rpy2 = R2.eulerAngles(0, 1, 2);
+	cout << "roll pitch yaw of R1:\n" << 57.2958 * rpy1 << endl;
+	cout << "roll pitch yaw of R2:\n" << 57.2958 * rpy2 << endl;
 
 	while(1) {cv::waitKey(30);}
 }
