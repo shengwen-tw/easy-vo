@@ -56,96 +56,30 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 
 	feature_detector.plot_matched_features(test_img1, test_img2, last_features, new_features, feature_matches);
 
-	Eigen::MatrixXf A(8, 9);
-
-	int r = 0;
-	for(cv::DMatch m:feature_matches) {
-		double u1, v1, u2, v2;
-		u1 = last_features.keypoints[m.trainIdx].pt.x;
-		v1 = last_features.keypoints[m.trainIdx].pt.y;
-		u2 = new_features.keypoints[m.trainIdx].pt.x;
-		v2 = new_features.keypoints[m.trainIdx].pt.y;
-		printf("(%lf, %lf) -> (%lf, %lf)\n", u1, v1, u2, v2);
-
-		if(r < 8) {
-			A(r, 0) = u1*u2;
-			A(r, 1) = u1*v2;
-			A(r, 2) = u1;
-			A(r, 3) = v1*u2;
-			A(r, 4) = v1*v2;
-			A(r, 5) = v1;
-			A(r, 6) = u2;
-			A(r, 7) = v2;
-			A(r, 8) = 1;
-			r++;
-		}
+	vector<Point2f> points1, points2;
+	for(int i = 0; i < feature_matches.size(); i++) {
+		points1.push_back(last_features.keypoints[feature_matches[i].queryIdx].pt);
+		points2.push_back(new_features.keypoints[feature_matches[i].trainIdx].pt);
 	}
-	cout << A << endl;
 
-	imshow("img1", test_img1);
-	imshow("img2", test_img2);
+	Point2d principle_point(327.36105, 240.03464);
+	int focal_length = 656.24987;
 
-	/* solve E as optimization problem using SVD */
-	Eigen::JacobiSVD<MatrixXf> AtA_svd(A.transpose() * A, ComputeFullU | ComputeFullV);
-
-	cout << "SVD of AtA" << endl;
-	cout << "singular values" << endl << AtA_svd.singularValues() << endl;
-	cout << "U:" << endl << AtA_svd.matrixU() << endl;
-	cout << "V:" << endl << AtA_svd.matrixV() << endl;
-
-	/* extract E from smallest singular value corresponded singular vector  */
-	Eigen::Matrix3f E;
-	auto V_of_AtA = AtA_svd.matrixV();
-        E << V_of_AtA(8, 0), V_of_AtA(8, 1), V_of_AtA(8, 2),
-             V_of_AtA(8, 3), V_of_AtA(8, 4), V_of_AtA(8, 5),
-             V_of_AtA(8, 6), V_of_AtA(8, 7), V_of_AtA(8, 8);
+	/* solve essential matrix */
+	Mat E = findEssentialMat(points1, points2, focal_length, principle_point, RANSAC);
 	cout << "E:\n" << E << endl;
 
-	/* factoring R and t from E using SVD again, 4 combination are possible */
-	Eigen::JacobiSVD<Matrix3f> E_svd(E, ComputeFullU | ComputeFullV);
-	auto U = E_svd.matrixU();
-	auto Ut = U.transpose();
-	auto V = E_svd.matrixV();
-	auto Vt = V.transpose();
-	cout << "U:\n" << U << endl;
-	cout << "V:\n" << V << endl;
+	/* factor out rotation and translation from essential matrix */
+	Mat R, t;
+	recoverPose(E, points1, points2, R, t, focal_length, principle_point);
+	cout << "R:\n" << R << endl;
+	cout << "t:\n" << t << endl;
 
-	/* choose the R and t which give the positive depth */
-	Matrix3f R_pos_90, R_neg_90;
-	R_pos_90 << 0, -1, 0,
-                    1,  0, 0,
-                    0,  0, 1;
-	R_neg_90 <<  0,  1, 0,
-                    -1,  0, 0,
-                     0,  0, 1;
-
-	Matrix3f R1, R2;
-	R1 = U * R_pos_90.transpose() * Vt;
-	R2 = U * R_neg_90.transpose() * Vt;
-	cout << "R1:\n" << R1 << endl;
-	cout << "R2:\n" << R2 << endl;
-
-	Matrix3f sigma;
-	sigma << 1, 0, 0,
-                 0, 1, 0,
-                 0, 0, 0;
-	cout << "sigma:\n" << sigma << endl;
-
-	Matrix3f t1_skew_mat, t2_skew_mat;
-	t1_skew_mat = U * R_pos_90 * sigma * Ut;
-	t2_skew_mat = U * R_neg_90 * sigma * Ut;
-
-	Vector3f t1, t2;
-	vee_map_3x3(t1_skew_mat, t1);
-	vee_map_3x3(t2_skew_mat, t2);
-
-	cout << "t1:\n" << t1 << endl;
-	cout << "t2:\n" << t2 << endl;
-
-	auto rpy1 = R1.eulerAngles(0, 1, 2);
-	auto rpy2 = R2.eulerAngles(0, 1, 2);
-	cout << "roll pitch yaw of R1:\n" << 57.2958 * rpy1 << endl;
-	cout << "roll pitch yaw of R2:\n" << 57.2958 * rpy2 << endl;
+	double  _sqrt = sqrt(R.at<double>(0,0)*R.at<double>(0,0) + R.at<double>(1,0)*R.at<double>(1,0));
+	double roll = 57.2958 * atan2(R.at<double>(2,1) , R.at<double>(2,2));
+	double pitch = 57.2958 * atan2(-R.at<double>(2,0), _sqrt);
+	double yaw = 57.2958 * atan2(R.at<double>(1,0), R.at<double>(0,0));
+	printf("roll, pitch, yaw:\n[%lf, %lf, %lf]\n", roll, pitch, yaw);
 
 	while(1) {cv::waitKey(30);}
 }
