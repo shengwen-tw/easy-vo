@@ -14,8 +14,10 @@ public:
 	VisualOdemetry() {}
 	~VisualOdemetry() {}
 
-	void depth_calibration(cv::VideoCapture& camera);
-	void estimate_non_scaled_essential_matrix();
+	void scale_calibration(cv::VideoCapture& camera);
+	void estimate_essential_matrix(VOFeatures& ref_frame_features,
+                                       VOFeatures& curr_frame_features,
+                                       vector<DMatch>& feature_matches);
 	void initialize(Mat& img_initial_frame);
 	void pose_estimation_pnp(Eigen::Matrix4f& T, VOFeatures& ref_frame_features,
                                  VOFeatures& curr_frame_features, vector<DMatch>& feature_matches);

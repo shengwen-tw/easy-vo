@@ -13,7 +13,7 @@ using namespace cv;
 
 int main()
 {
-	cv::VideoCapture camera(0, cv::CAP_V4L);
+	cv::VideoCapture camera(4, cv::CAP_V4L);
         camera.set(CV_CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH);
         camera.set(CV_CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT);
 
@@ -25,8 +25,7 @@ int main()
 	Mat raw_img;
 
 	VisualOdemetry visual_odemetry;
-	visual_odemetry.estimate_non_scaled_essential_matrix();
-	visual_odemetry.depth_calibration(camera);
+	visual_odemetry.scale_calibration(camera);
 
 	/* initialization */
 	while(!camera.read(raw_img));

@@ -39,27 +39,31 @@ void VisualOdemetry::initialize(Mat& img_initial_frame)
 	img_initial_frame.copyTo(last_frame_img);
 }
 
-void VisualOdemetry::estimate_non_scaled_essential_matrix()
+void VisualOdemetry::estimate_essential_matrix(VOFeatures& ref_frame_features,
+                                               VOFeatures& curr_frame_features,
+                                               vector<DMatch>& feature_matches)
 {
+#if 0
 	Mat test_img1 = imread("/home/shengwen/test_data/1.png");
 	Mat test_img2 = imread("/home/shengwen/test_data/2.png");
 
 	imshow("img1", test_img1);
 	imshow("img2", test_img2);
 
-	VOFeatures last_features, new_features;
-	feature_detector.extract(test_img1, last_features);
-	feature_detector.extract(test_img2, new_features);
+	VOFeatures ref_frame_features, curr_frame_features,;
+	feature_detector.extract(test_img1, ref_frame_features);
+	feature_detector.extract(test_img2, curr_frame_features);
 
 	vector<DMatch> feature_matches;
-	feature_detector.match(feature_matches, last_features, new_features);
+	feature_detector.match(feature_matches, ref_frame_features, curr_frame_features);
 
-	feature_detector.plot_matched_features(test_img1, test_img2, last_features, new_features, feature_matches);
-
+	feature_detector.plot_matched_features(test_img1, test_img2, ref_frame_features,
+                                               curr_frame_features, feature_matches);
+#endif
 	vector<Point2f> points1, points2;
 	for(int i = 0; i < feature_matches.size(); i++) {
-		points1.push_back(last_features.keypoints[feature_matches[i].queryIdx].pt);
-		points2.push_back(new_features.keypoints[feature_matches[i].trainIdx].pt);
+		points1.push_back(ref_frame_features.keypoints[feature_matches[i].queryIdx].pt);
+		points2.push_back(curr_frame_features.keypoints[feature_matches[i].trainIdx].pt);
 	}
 
 	Point2d principle_point(327.36105, 240.03464);
@@ -84,9 +88,9 @@ void VisualOdemetry::estimate_non_scaled_essential_matrix()
 	while(1) {cv::waitKey(30);}
 }
 
-void VisualOdemetry::depth_calibration(cv::VideoCapture& camera)
+void VisualOdemetry::scale_calibration(cv::VideoCapture& camera)
 {
-	cv::Mat raw_img;
+	cv::Mat img1, img2;
 
 	auto imshow_callback = [](int event, int x, int y, int flags, void* param) {
 	        if(event == CV_EVENT_LBUTTONDOWN) {
@@ -99,20 +103,31 @@ void VisualOdemetry::depth_calibration(cv::VideoCapture& camera)
 	printf("click the window to collect the calibration frame 1\n");
 	calib_exit_signal = false;
 	while(!calib_exit_signal) {
-		while(!camera.read(raw_img));
-		imshow("scale calibration", raw_img);
+		while(!camera.read(img1));
+		imshow("scale calibration", img1);
 		cv::waitKey(30);
 	}
 
 	printf("click the window to collect the calibration frame 2\n");
 	calib_exit_signal = false;
 	while(!calib_exit_signal) {
-		while(!camera.read(raw_img));
-		imshow("scale calibration", raw_img);
+		while(!camera.read(img2));
+		imshow("scale calibration", img2);
 		cv::waitKey(30);
 	}
 
-	/* calculate scaling factor via least square method */
+	VOFeatures ref_frame_features, curr_frame_features;
+	feature_detector.extract(img1, ref_frame_features);
+	feature_detector.extract(img2, curr_frame_features);
+
+	vector<DMatch> feature_matches;
+	feature_detector.match(feature_matches, ref_frame_features, curr_frame_features);
+
+	feature_detector.plot_matched_features(img1, img2, ref_frame_features,
+                                               curr_frame_features, feature_matches);
+
+	estimate_essential_matrix(ref_frame_features, curr_frame_features,
+                                  feature_matches);
 }
 
 void VisualOdemetry::pose_estimation_pnp(Eigen::Matrix4f& T,
